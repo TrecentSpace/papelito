@@ -1,50 +1,69 @@
-# Welcome to your Expo app 👋
+# Papelito - Aplicación de Notas Estilo Notion
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Una aplicación de notas moderna inspirada en Notion, construida con React Native y Expo.
 
-## Get started
+## Características
 
-1. Install dependencies
+- ✏️ **Bloques editables**: Crea notas con diferentes tipos de bloques (texto, encabezados, listas, tareas)
+- 📝 **Múltiples tipos de contenido**: 
+  - Texto normal
+  - Títulos (H1, H2, H3)
+  - Listas con viñetas
+  - Listas numeradas
+  - Tareas pendientes (checkboxes)
+- 🔍 **Búsqueda**: Busca entre todas tus notas
+- 💾 **Almacenamiento local**: Tus notas se guardan automáticamente en el dispositivo
+- 🌓 **Modo claro/oscuro**: Soporte automático para temas claro y oscuro
+- 📱 **Multiplataforma**: Funciona en iOS, Android y Web
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Instalación
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Uso
 
-## Learn more
+1. Inicia la aplicación:
+```bash
+npm start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+2. Presiona `w` para abrir en web, `i` para iOS, o `a` para Android
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+3. Crea tu primera nota tocando el botón "+" en la pantalla principal
 
-## Join the community
+4. Edita tus notas tocando en cualquier nota de la lista
 
-Join our community of developers creating universal apps.
+5. Agrega nuevos bloques usando el botón "+" en el editor
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Estructura del Proyecto
+
+- `app/` - Pantallas y navegación
+  - `(tabs)/index.tsx` - Lista principal de notas
+  - `note/[id].tsx` - Editor de notas
+- `components/` - Componentes reutilizables
+  - `note-block.tsx` - Componente para bloques editables
+  - `block-type-menu.tsx` - Menú para seleccionar tipo de bloque
+- `types/` - Definiciones de TypeScript
+- `services/` - Servicios de almacenamiento
+- `utils/` - Utilidades
+
+## Tecnologías
+
+- React Native
+- Expo Router
+- TypeScript
+- AsyncStorage
+- AI Gateway (Vercel) - Para funcionalidades de IA
+
+## Configuración de AI Gateway
+
+Para usar las funcionalidades de IA, necesitas configurar AI Gateway:
+
+1. Obtén tu API key desde el [AI Gateway Dashboard](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai&title=Go+to+AI+Gateway)
+2. Crea un archivo `.env` en la raíz del proyecto
+3. Agrega tu API key: `AI_GATEWAY_API_KEY=tu_api_key_aqui`
+4. Reinicia la aplicación
+
+Para más detalles, consulta [docs/AI_GATEWAY_SETUP.md](./docs/AI_GATEWAY_SETUP.md)

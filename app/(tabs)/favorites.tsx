@@ -1,58 +1,46 @@
+import React, { useState } from 'react';
+import {
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  TextInput,
+  Alert,
+} from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { api } from '@/convex/_generated/api';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Note } from '@/types/note';
-import { generateId } from '@/utils/uuid';
-import { useMutation, useQuery } from 'convex/react';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import {
-  Alert,
-  FlatList,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { noteStorage } from '@/services/noteStorage';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/theme';
 
-export default function HomeScreen() {
+export default function FavoritesScreen() {
   const router = useRouter();
+  const [notes, setNotes] = useState<Note[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
-  const notes = useQuery(api.notes.getAll);
-  const saveNote = useMutation(api.notes.save);
-  const deleteNoteMutation = useMutation(api.notes.deleteNote);
+  const loadNotes = async () => {
+    const allNotes = await noteStorage.getAllNotes();
+    const favoriteNotes = allNotes
+      .filter((note) => note.favorite)
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+    setNotes(favoriteNotes);
+  };
 
-  const sortedNotes = notes?.sort((a, b) => b.updatedAt - a.updatedAt) || [];
+  useFocusEffect(
+    React.useCallback(() => {
+      loadNotes();
+    }, [])
+  );
 
   const toggleFavorite = async (note: Note) => {
     const updatedNote = { ...note, favorite: !note.favorite };
-    await saveNote({ note: updatedNote });
-  };
-
-  const createNewNote = async () => {
-    const newNote: Note = {
-      id: generateId(),
-      title: 'Sin título',
-      emoji: '',
-      favorite: false,
-      blocks: [
-        {
-          id: generateId(),
-          type: 'paragraph',
-          content: '',
-        },
-      ],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    await saveNote({ note: newNote });
-    router.push(`/note/${newNote.id}`);
+    await noteStorage.saveNote(updatedNote);
+    loadNotes();
   };
 
   const deleteNote = async (noteId: string) => {
@@ -62,13 +50,14 @@ export default function HomeScreen() {
         text: 'Eliminar',
         style: 'destructive',
         onPress: async () => {
-          await deleteNoteMutation({ id: noteId });
+          await noteStorage.deleteNote(noteId);
+          loadNotes();
         },
       },
     ]);
   };
 
-  const filteredNotes = sortedNotes.filter(
+  const filteredNotes = notes.filter(
     (note) =>
       note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       note.blocks.some((block) =>
@@ -92,18 +81,15 @@ export default function HomeScreen() {
     <ThemedView style={styles.container}>
       <View style={styles.header}>
         <ThemedText type="title" style={styles.title}>
-          Papelito
+          Favoritas
         </ThemedText>
-        <TouchableOpacity onPress={createNewNote} style={styles.newNoteButton}>
-          <IconSymbol name="plus.circle.fill" size={28} color={colors.tint} />
-        </TouchableOpacity>
       </View>
 
       <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
         <IconSymbol name="magnifyingglass" size={20} color={colors.tabIconDefault} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
-          placeholder="Buscar notas..."
+          placeholder="Buscar notas favoritas..."
           placeholderTextColor={colors.tabIconDefault}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -139,7 +125,7 @@ export default function HomeScreen() {
                 style={styles.favoriteButton}
               >
                 <IconSymbol
-                  name={item.favorite ? 'heart.fill' : 'heart'}
+                  name="heart.fill"
                   size={20}
                   color={item.favorite ? '#FF3B30' : colors.tabIconDefault}
                 />
@@ -156,15 +142,15 @@ export default function HomeScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <IconSymbol name="note.text" size={64} color={colors.tabIconDefault} />
+            <IconSymbol name="heart" size={64} color={colors.tabIconDefault} />
             <ThemedText style={styles.emptyText}>
-              {searchQuery ? 'No se encontraron notas' : 'No hay notas todavía'}
+              {searchQuery
+                ? 'No se encontraron notas favoritas'
+                : 'No hay notas favoritas todavía'}
             </ThemedText>
-            {!searchQuery && (
-              <TouchableOpacity onPress={createNewNote} style={styles.emptyButton}>
-                <ThemedText style={styles.emptyButtonText}>Crear primera nota</ThemedText>
-              </TouchableOpacity>
-            )}
+            <ThemedText style={styles.emptySubtext}>
+              Marca notas como favoritas desde la lista principal
+            </ThemedText>
           </View>
         }
         contentContainerStyle={styles.listContent}
@@ -188,9 +174,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: '700',
-  },
-  newNoteButton: {
-    padding: 4,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -255,17 +238,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     opacity: 0.6,
     marginTop: 16,
-    marginBottom: 24,
+    marginBottom: 8,
   },
-  emptyButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#007AFF',
-  },
-  emptyButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  emptySubtext: {
+    fontSize: 14,
+    opacity: 0.4,
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
 });
