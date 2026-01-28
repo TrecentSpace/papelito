@@ -11,7 +11,7 @@ import { noteStorage } from '@/services/noteStorage';
 import { Block, BlockType, Note } from '@/types/note';
 import { generateId } from '@/utils/uuid';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
