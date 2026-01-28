@@ -4,6 +4,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { api } from '@/convex/_generated/api';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useConvexReady } from '@/hooks/use-convex-ready';
 import { Note } from '@/types/note';
 import { generateId } from '@/utils/uuid';
 import { useMutation, useQuery } from 'convex/react';
@@ -16,19 +17,32 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from 'react-native';
 
 export default function HomeScreen() {
+  const { isReady, isLoading } = useConvexReady();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
-  const notes = useQuery(api.notes.getAll);
+  const notes = useQuery(api.notes.getAll) ?? [];
   const saveNote = useMutation(api.notes.save);
   const deleteNoteMutation = useMutation(api.notes.deleteNote);
 
-  const sortedNotes = notes?.sort((a, b) => b.updatedAt - a.updatedAt) || [];
+  const sortedNotes = [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
+
+  if (!isReady) {
+    return (
+      <ThemedView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0a7ea4" />
+          <ThemedText style={styles.loadingText}>Cargando notas...</ThemedText>
+        </View>
+      </ThemedView>
+    );
+  }
 
   const toggleFavorite = async (note: Note) => {
     const updatedNote = { ...note, favorite: !note.favorite };
@@ -176,6 +190,16 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    opacity: 0.6,
   },
   header: {
     flexDirection: 'row',

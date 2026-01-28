@@ -6,41 +6,46 @@ import {
   View,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Note } from '@/types/note';
-import { noteStorage } from '@/services/noteStorage';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useConvexReady } from '@/hooks/use-convex-ready';
 import { Colors } from '@/constants/theme';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '@/convex/_generated/api';
 
 export default function FavoritesScreen() {
+  const { isReady } = useConvexReady();
   const router = useRouter();
-  const [notes, setNotes] = useState<Note[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
-  const loadNotes = async () => {
-    const allNotes = await noteStorage.getAllNotes();
-    const favoriteNotes = allNotes
-      .filter((note) => note.favorite)
-      .sort((a, b) => b.updatedAt - a.updatedAt);
-    setNotes(favoriteNotes);
-  };
+  const notes = useQuery(api.notes.getAll) ?? [];
+  const saveNote = useMutation(api.notes.save);
+  const deleteNoteMutation = useMutation(api.notes.deleteNote);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      loadNotes();
-    }, [])
-  );
+  const favoriteNotes = notes.filter((note) => note.favorite).sort((a, b) => b.updatedAt - a.updatedAt);
+
+  if (!isReady) {
+    return (
+      <ThemedView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0a7ea4" />
+          <ThemedText style={styles.loadingText}>Cargando favoritas...</ThemedText>
+        </View>
+      </ThemedView>
+    );
+  }
 
   const toggleFavorite = async (note: Note) => {
     const updatedNote = { ...note, favorite: !note.favorite };
-    await noteStorage.saveNote(updatedNote);
-    loadNotes();
+    await saveNote({ note: updatedNote });
   };
 
   const deleteNote = async (noteId: string) => {
@@ -50,14 +55,13 @@ export default function FavoritesScreen() {
         text: 'Eliminar',
         style: 'destructive',
         onPress: async () => {
-          await noteStorage.deleteNote(noteId);
-          loadNotes();
+          await deleteNoteMutation({ id: noteId });
         },
       },
     ]);
   };
 
-  const filteredNotes = notes.filter(
+  const filteredNotes = favoriteNotes.filter(
     (note) =>
       note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       note.blocks.some((block) =>
@@ -162,6 +166,16 @@ export default function FavoritesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    opacity: 0.6,
   },
   header: {
     flexDirection: 'row',

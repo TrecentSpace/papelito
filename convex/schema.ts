@@ -2,8 +2,16 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  users: defineTable({
+    tokenIdentifier: v.string(),
+    name: v.optional(v.string()),
+    email: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+  }).index("by_token", ["tokenIdentifier"]),
+
   notes: defineTable({
     id: v.string(),
+    userId: v.id("users"),
     title: v.string(),
     emoji: v.optional(v.string()),
     favorite: v.optional(v.boolean()),
@@ -25,5 +33,5 @@ export default defineSchema({
     ),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  }).index("by_user", ["userId"]),
 });
