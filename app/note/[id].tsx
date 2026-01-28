@@ -5,11 +5,12 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
+import { api } from '@/convex/_generated/api';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { aiGateway } from '@/services/aiGateway';
-import { noteStorage } from '@/services/noteStorage';
 import { Block, BlockType, Note } from '@/types/note';
 import { generateId } from '@/utils/uuid';
+import { useMutation, useQuery } from 'convex/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -26,6 +27,14 @@ import {
 export default function NoteEditorScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+
+  // Convex hooks
+  const loadedNote = useQuery(api.notes.get, id ? { id } : 'skip');
+  const saveNoteMutation = useMutation(api.notes.save);
+
+  // Local state
   const [note, setNote] = useState<Note | null>(null);
   const [title, setTitle] = useState('');
   const [emoji, setEmoji] = useState<string>('');
@@ -36,18 +45,15 @@ export default function NoteEditorScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
 
-  const loadNote = useCallback(async () => {
-    if (!id) return;
-    const loadedNote = await noteStorage.getNote(id);
+  // Load note from Convex
+  useEffect(() => {
     if (loadedNote) {
       setNote(loadedNote);
       setTitle(loadedNote.title || '');
       setEmoji(loadedNote.emoji || '');
       setFavorite(loadedNote.favorite || false);
-    } else {
+    } else if (loadedNote === null && id) {
       // Si no existe, crear una nueva
       const newNote: Note = {
         id: id,
@@ -69,26 +75,23 @@ export default function NoteEditorScreen() {
       setEmoji('');
       setFavorite(false);
     }
-  }, [id]);
-
-  useEffect(() => {
-    loadNote();
-  }, [loadNote]);
+  }, [loadedNote, id]);
 
   const handleSave = async () => {
     if (!note) return;
-    
+
     setIsSaving(true);
     try {
       const updatedNote: Note = {
-        ...note,
+        id: note.id,
         title: title.trim() || 'Sin título',
         emoji: emoji,
         favorite: favorite,
+        blocks: note.blocks,
+        createdAt: note.createdAt,
         updatedAt: Date.now(),
       };
-      await noteStorage.saveNote(updatedNote);
-      setNote(updatedNote);
+      await saveNoteMutation({ note: updatedNote });
       Alert.alert('Éxito', 'Nota guardada correctamente');
     } catch (error) {
       Alert.alert('Error', 'No se pudo guardar la nota');
